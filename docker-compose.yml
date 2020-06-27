@@ -1,12 +1,39 @@
 version: '2'
 services:
   jenkins:
-    image: (same jenkins image you are using)
-    user: (Sudoer user needed)
+    image: jenkins/jenkins:2.204.5-jdk11
+    user: root
     ports:
-      - "8080:8080"
+      - "8088:8080"
       - "50000:50000"
+    networks:
+      - jenkins
     volumes:
-      - (Files path of jenkins on vm):/var/jenkins_home
+      - ~/jenkins_data:/var/jenkins_home
       - /var/run/docker.sock:/var/run/docker.sock
     privileged: true
+  postgres:
+    image: postgres:9.6
+    networks:
+      - jenkins
+    environment:
+      POSTGRES_USER: sonar
+      POSTGRES_PASSWORD: sonar
+    volumes:
+      - /var/postgres-data:/var/lib/postgresql/data
+  sonarqube:
+    image: sonarqube:lts
+    ports:
+      - "9000:9000"
+      - "9092:9092"
+    networks:
+      - jenkins
+    environment:
+      SONARQUBE_JDBC_USERNAME: sonar
+      SONARQUBE_JDBC_PASSWORD: sonar
+      SONARQUBE_JDBC_URL: "jdbc:postgresql://postgres:5432/sonar"
+    depends_on:
+      - postgres
+
+networks:
+  jenkins:
